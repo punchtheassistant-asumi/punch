@@ -731,7 +731,7 @@ async function fetchMenuFromUrl(fromPreset=false){
 
     if(items.length===0){
       statusEl.className="fetch-status err";
-      statusEl.innerHTML="⚠️ メニューを自動検出できませんでした。手動で追加するか、<button onclick='setCustomMode("freetext")' style='padding:5px 12px;border:none;border-radius:8px;background:var(--p);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);'>✏️ テキスト入力</button>に切り替えてください。";
+      statusEl.innerHTML=`⚠️ メニューを自動検出できませんでした。手動で追加するか、<button onclick="setCustomMode('freetext')" style="padding:5px 12px;border:none;border-radius:8px;background:var(--p);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">✏️ テキスト入力</button>に切り替えてください。`;
       return;
     }
 
@@ -758,9 +758,9 @@ async function fetchMenuFromUrl(fromPreset=false){
   }catch(e){
     statusEl.className="fetch-status err";
     if(e.name==="TimeoutError"){
-      statusEl.innerHTML="⚠️ タイムアウト。URLが正しいか確認してください。<br><button onclick='setCustomMode("freetext")' style='margin-top:8px;padding:7px 14px;border:none;border-radius:8px;background:var(--p);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);'>✏️ テキスト入力に切り替え</button>";
+      statusEl.innerHTML=`⚠️ タイムアウト。URLが正しいか確認してください。<br><button onclick="setCustomMode('freetext')" style="margin-top:8px;padding:7px 14px;border:none;border-radius:8px;background:var(--p);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">✏️ テキスト入力に切り替え</button>`;
     } else {
-      statusEl.innerHTML="⚠️ 取得に失敗 ("+e.message+")。<br><button onclick='setCustomMode("freetext")' style='margin-top:8px;padding:7px 14px;border:none;border-radius:8px;background:var(--p);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);'>✏️ テキスト入力に切り替え</button>";
+      statusEl.innerHTML=`⚠️ 取得に失敗 (${e.message})。<br><button onclick="setCustomMode('freetext')" style="margin-top:8px;padding:7px 14px;border:none;border-radius:8px;background:var(--p);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">✏️ テキスト入力に切り替え</button>`;
     }
     console.error("fetchMenu:",e);
   }finally{
