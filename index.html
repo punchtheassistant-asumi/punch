@@ -217,6 +217,18 @@ main{max-width:600px;margin:0 auto;padding:20px 15px 96px;}
 @keyframes spin{to{transform:rotate(360deg)}}
 .min-warn{background:#FFF3CD;border:1px solid #F0D060;border-radius:12px;padding:10px 14px;font-size:12px;color:#7A5F00;margin-top:12px;display:none;}
 .min-warn.show{display:block;}
+.freetext-wrap{background:var(--w);border:2px solid var(--bd);border-radius:14px;padding:16px;}
+.freetext-input{width:100%;padding:12px 14px;border:2px solid var(--bd);border-radius:12px;font-size:14px;font-family:var(--font);outline:none;resize:vertical;min-height:100px;line-height:1.6;}
+.freetext-input:focus{border-color:var(--p);}
+.freetext-price-row{display:flex;align-items:center;gap:10px;margin-top:10px;}
+.freetext-price-row label{font-size:11px;font-weight:800;color:var(--mu);white-space:nowrap;}
+.freetext-price-row input{flex:1;padding:10px 12px;border:2px solid var(--bd);border-radius:10px;font-size:14px;font-family:var(--font);outline:none;}
+.freetext-price-row input:focus{border-color:var(--p);}
+.custom-mode-toggle{display:flex;gap:8px;margin-bottom:14px;}
+.mode-tab{flex:1;padding:10px;border:2px solid var(--bd);border-radius:12px;background:var(--w);font-size:12px;font-weight:700;cursor:pointer;text-align:center;transition:all .18s;font-family:var(--font);}
+.mode-tab.active{border-color:var(--p);background:var(--pl);color:var(--pd);}
+.preset-ready{background:linear-gradient(135deg,#E8F8F0,#D4F0E4);border:1.5px solid #81C99A;border-radius:12px;padding:11px 14px;font-size:12px;color:#1A6035;font-weight:600;margin-bottom:10px;display:none;}
+.preset-ready.show{display:block;}
 
 /* FETCH URL */
 .fetch-section{background:linear-gradient(135deg,#F3EEFF,#EDE5FF);border:2px solid var(--pm);border-radius:14px;padding:14px;margin-bottom:14px;}
@@ -352,22 +364,38 @@ main{max-width:600px;margin:0 auto;padding:20px 15px 96px;}
       <input id="setupName" type="text" placeholder="e.g. Team Lunch — Jul 17">
     </div>
 
-    <div class="field" id="customUrlField" style="display:none;">
-      <label>Menu URL (custom)</label>
-      <div class="fetch-section">
-        <div class="fetch-row">
-          <input id="fetchUrl" type="url" placeholder="Restaurant menu URL...">
-          <button class="fetch-btn" id="fetchBtn" onclick="fetchMenuFromUrl()">Fetch</button>
-        </div>
-        <div class="fetch-status" id="fetchStatus">URLを入れるとメニューを自動取得します</div>
-      </div>
-    </div>
+    <!-- Preset venue: just show a ready badge -->
+    <div class="preset-ready" id="presetReady">✅ Menu pre-loaded from preset — participants will see the full menu when they join.</div>
 
-    <div class="field">
-      <label>Menu</label>
-      <div id="fetchStatusPreset" class="fetch-status" style="margin-bottom:10px;display:none;"></div>
-      <div id="menuBuilder"></div>
-      <button class="builder-add-cat" onclick="addCategory()">+ Add Category</button>
+    <!-- Custom venue: free text OR menu builder -->
+    <div id="customSection" style="display:none;">
+      <div class="field">
+        <label>Order Mode</label>
+        <div class="custom-mode-toggle">
+          <button class="mode-tab active" id="tabFreeText" onclick="setCustomMode('freetext')">✏️ Free Text</button>
+          <button class="mode-tab" id="tabMenuBuilder" onclick="setCustomMode('menu')">📋 Menu Builder</button>
+        </div>
+      </div>
+      <!-- Free text note -->
+      <div id="freeTextNote" style="font-size:11px;color:var(--mu);margin-bottom:14px;padding:0 2px;">
+        Participants type their order freely. You collect all orders and place them manually.
+      </div>
+      <!-- URL fetch (hidden by default, shown in menu builder mode) -->
+      <div class="field" id="customUrlField" style="display:none;">
+        <label>Fetch menu from URL (optional)</label>
+        <div class="fetch-section">
+          <div class="fetch-row">
+            <input id="fetchUrl" type="url" placeholder="Restaurant menu URL...">
+            <button class="fetch-btn" id="fetchBtn" onclick="fetchMenuFromUrl()">Fetch</button>
+          </div>
+          <div class="fetch-status" id="fetchStatus">URLを入れると自動取得します</div>
+        </div>
+      </div>
+      <!-- Menu builder (hidden in free text mode) -->
+      <div class="field" id="menuBuilderSection" style="display:none;">
+        <div id="menuBuilder"></div>
+        <button class="builder-add-cat" onclick="addCategory()">+ Add Category</button>
+      </div>
     </div>
 
     <div class="field">
@@ -424,6 +452,16 @@ main{max-width:600px;margin:0 auto;padding:20px 15px 96px;}
       <p style="font-size:11px;color:var(--mu);">Tap a drink to choose size & temperature</p>
     </div>
     <div id="menuSections"></div>
+    <!-- Free text order mode -->
+    <div id="freeTextOrderWrap" style="display:none;">
+      <div class="freetext-wrap">
+        <textarea class="freetext-input" id="freeTextInput" placeholder="ご注文内容を入力してください&#10;例: カツ丼 ¥850&#10;     味噌汁 ¥150" oninput="updateFreeTextCart()"></textarea>
+        <div class="freetext-price-row">
+          <label>合計金額 (¥)</label>
+          <input type="number" id="freeTextPrice" placeholder="0" min="0" oninput="updateFreeTextCart()">
+        </div>
+      </div>
+    </div>
     <div style="height:80px;"></div>
   </div>
 
@@ -563,48 +601,42 @@ function onVenueSelect(){
   _selectedVenueId=id;
   const venue=VENUES[id];
   const hintEl=document.getElementById("venueHint");
-  const customField=document.getElementById("customUrlField");
-  const presetStatus=document.getElementById("fetchStatusPreset");
 
-  // Reset hint
+  // Reset UI
   hintEl.className="venue-hint";hintEl.textContent="";
-  customField.style.display="none";
-  presetStatus.style.display="none";
+  document.getElementById("presetReady").classList.remove("show");
+  document.getElementById("customSection").style.display="none";
 
   if(!id)return;
 
   if(id==="custom"){
-    customField.style.display="block";
+    document.getElementById("customSection").style.display="block";
+    setCustomMode("freetext");
     return;
   }
 
   if(!venue)return;
 
-  // Pre-fill session name
+  // Pre-fill name and min amount
   const today=new Date().toLocaleDateString("ja-JP",{month:"numeric",day:"numeric"});
   document.getElementById("setupName").value=venue.name+" — "+today;
-
-  // Pre-fill min amount
   document.getElementById("setupMin").value=venue.minAmount||"";
 
-  // Show hint
+  // Show preset ready badge
+  document.getElementById("presetReady").classList.add("show");
   hintEl.textContent=venue.hint||"";
   hintEl.className="venue-hint show";
+}
 
-  // Load pre-built menu data (Starbucks) or auto-fetch for web venues
-  if(venue.menuData){
-    menuCategories=JSON.parse(JSON.stringify(venue.menuData));
-    renderBuilder();
-    presetStatus.style.display="block";
-    presetStatus.className="fetch-status ok";
-    presetStatus.textContent="✅ Starbucks メニュー（70アイテム）をロードしました。確認・編集してください。";
-  } else if(venue.menuFetchUrl){
-    presetStatus.style.display="block";
-    presetStatus.className="fetch-status";
-    presetStatus.textContent="🔄 メニューを取得中...";
-    document.getElementById("fetchUrl").value=venue.menuFetchUrl;
-    fetchMenuFromUrl(true);
-  }
+/* ── Custom mode toggle ── */
+let _customMode="freetext";
+function setCustomMode(mode){
+  _customMode=mode;
+  document.getElementById("tabFreeText").classList.toggle("active",mode==="freetext");
+  document.getElementById("tabMenuBuilder").classList.toggle("active",mode==="menu");
+  document.getElementById("freeTextNote").style.display=mode==="freetext"?"block":"none";
+  document.getElementById("customUrlField").style.display=mode==="menu"?"block":"none";
+  document.getElementById("menuBuilderSection").style.display=mode==="menu"?"block":"none";
 }
 
 /* ── PLACE ORDER ── */
@@ -699,7 +731,7 @@ async function fetchMenuFromUrl(fromPreset=false){
 
     if(items.length===0){
       statusEl.className="fetch-status err";
-      statusEl.innerHTML="⚠️ メニューを自動検出できませんでした。手動で追加してください。";
+      statusEl.innerHTML="⚠️ メニューを自動検出できませんでした。手動で追加するか、<button onclick='setCustomMode("freetext")' style='padding:5px 12px;border:none;border-radius:8px;background:var(--p);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);'>✏️ テキスト入力</button>に切り替えてください。";
       return;
     }
 
@@ -726,9 +758,9 @@ async function fetchMenuFromUrl(fromPreset=false){
   }catch(e){
     statusEl.className="fetch-status err";
     if(e.name==="TimeoutError"){
-      statusEl.textContent="⚠️ タイムアウト。URLが正しいか確認してください。";
+      statusEl.innerHTML="⚠️ タイムアウト。URLが正しいか確認してください。<br><button onclick='setCustomMode("freetext")' style='margin-top:8px;padding:7px 14px;border:none;border-radius:8px;background:var(--p);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);'>✏️ テキスト入力に切り替え</button>";
     } else {
-      statusEl.textContent="⚠️ 取得に失敗 ("+e.message+")。手動でメニューを追加してください。";
+      statusEl.innerHTML="⚠️ 取得に失敗 ("+e.message+")。<br><button onclick='setCustomMode("freetext")' style='margin-top:8px;padding:7px 14px;border:none;border-radius:8px;background:var(--p);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);'>✏️ テキスト入力に切り替え</button>";
     }
     console.error("fetchMenu:",e);
   }finally{
@@ -877,20 +909,33 @@ function renderBuilder(){
 async function createSession(){
   const name=document.getElementById('setupName').value.trim();
   if(!name){showToast('Please enter a session name');return;}
-  // validate menu
-  const validCats=menuCategories.filter(c=>c.name && c.items.some(i=>i.name && i.price>0));
-  if(validCats.length===0){showToast('Please add at least one menu item');return;}
   const minAmt=parseInt(document.getElementById('setupMin').value)||0;
   const pin=document.getElementById('setupPin').value.trim()||'0000';
   const code=await genUniqueCode();
   const venue=VENUES[_selectedVenueId]||{};
-  const config={
-    name,menu:validCats,minAmount:minAmt,adminPin:pin,
+  let config={
+    name,minAmount:minAmt,adminPin:pin,
     orderUrl:venue.orderUrl||null,
     orderNote:venue.orderNote||null,
     venueType:venue.venueType||"web",
     createdAt:new Date().toISOString()
   };
+
+  // Determine order mode
+  if(_selectedVenueId && _selectedVenueId!=="custom"){
+    // Preset venue: store venueId, no menu needed in Firebase
+    config.orderMode="preset";
+    config.venueId=_selectedVenueId;
+  } else if(_customMode==="menu"){
+    // Custom with menu builder
+    const validCats=menuCategories.filter(c=>c.name && c.items.some(i=>i.name && i.price>0));
+    if(validCats.length===0){showToast('Please add at least one menu item');return;}
+    config.orderMode="menu";
+    config.menu=validCats;
+  } else {
+    // Custom free text
+    config.orderMode="freetext";
+  }
   if(useFirebase){
     try{await db.collection(SESSION_COLL).doc(code).set({config});}
     catch(e){showToast('Error creating session: '+e.message);return;}
@@ -985,8 +1030,32 @@ async function submitName(){
 /* ── MENU RENDER ── */
 function renderMenuSections(){
   const wrap=document.getElementById('menuSections');wrap.innerHTML='';
-  if(!sessionConfig||!sessionConfig.menu){wrap.innerHTML='<p style="color:var(--mu);text-align:center;padding:40px 0;">No menu configured.</p>';return;}
-  sessionConfig.menu.forEach(cat=>{
+  const ftWrap=document.getElementById('freeTextOrderWrap');
+  ftWrap.style.display='none';
+
+  const mode=sessionConfig?.orderMode||'menu';
+  const menuHdr=document.querySelector('#sMenu .menu-hdr p');
+
+  // Resolve menu data
+  let menu=null;
+  if(mode==='preset'&&sessionConfig.venueId){
+    menu=(VENUES[sessionConfig.venueId]||{}).menuData||null;
+  } else if(mode==='menu'){
+    menu=sessionConfig.menu||null;
+  } else if(mode==='freetext'){
+    // Show free text input instead of grid
+    wrap.style.display='none';
+    ftWrap.style.display='block';
+    if(menuHdr)menuHdr.textContent='ご注文内容を自由に入力してください';
+    return;
+  }
+  wrap.style.display='';
+
+  if(!menu||menu.length===0){
+    wrap.innerHTML='<p style="color:var(--mu);text-align:center;padding:40px 0;">No menu configured.</p>';return;
+  }
+  if(menuHdr)menuHdr.textContent='Tap a drink to choose size & temperature';
+  menu.forEach(cat=>{
     const sec=document.createElement('div');sec.style.marginBottom='20px';
     const gh=document.createElement('div');gh.className='group-hdr';gh.textContent=cat.name;sec.appendChild(gh);
     const g=document.createElement('div');g.className='mgrid';
@@ -999,6 +1068,14 @@ function renderMenuSections(){
     });
     sec.appendChild(g);wrap.appendChild(sec);
   });
+}
+
+/* ── Free text cart ── */
+function updateFreeTextCart(){
+  const text=(document.getElementById('freeTextInput')||{}).value?.trim()||'';
+  const price=parseInt((document.getElementById('freeTextPrice')||{}).value)||0;
+  cart=text?[{name:text,price,isFreeText:true}]:[];
+  updateCartBar();
 }
 
 /* ── CART ── */
@@ -1095,7 +1172,11 @@ function goToConfirm(){
     const li=document.createElement('li');
     const tempTag=item.temp==='hot'?'<span class="tag-hot">HOT</span>':item.temp==='ice'?'<span class="tag-ice">ICE</span>':'';
     const szTag=item.size?`<span class="tag-size">${item.size}</span>`:'';
-    li.innerHTML=`<div class="o-emoji">${item.isDrink?'☕':'🍱'}</div><div class="o-info"><div class="o-name">${item.name}</div><div class="o-opts">${tempTag} ${szTag}</div></div><div class="o-price">¥${item.price.toLocaleString()}</div>`;
+    if(item.isFreeText){
+      li.innerHTML=`<div class="o-emoji">✏️</div><div class="o-info"><div class="o-name" style="white-space:pre-wrap;font-size:12px;">${item.name}</div></div><div class="o-price">${item.price>0?'¥'+item.price.toLocaleString():''}</div>`;
+    } else {
+      li.innerHTML=`<div class="o-emoji">${item.isDrink?'☕':'🍱'}</div><div class="o-info"><div class="o-name">${item.name}</div><div class="o-opts">${tempTag} ${szTag}</div></div><div class="o-price">¥${item.price.toLocaleString()}</div>`;
+    }
     list.appendChild(li);
   });
   const li=document.createElement('li');
@@ -1160,9 +1241,10 @@ function loadAdminData(){
         minWarn.classList.add('show');
       }else{minWarn.textContent='✅ Minimum order met';minWarn.classList.add('show');}
     }
-    // item ranking
+    // item ranking (skip free-text entries — not rankable)
     const itemMap={};
     Object.values(votedMap).forEach(v=>(v.items||[]).forEach(i=>{
+      if(i.isFreeText)return;
       const k=i.name+(i.temp?'_'+i.temp:'')+(i.size?'_'+i.size:'');
       if(!itemMap[k])itemMap[k]={name:i.name,temp:i.temp,size:i.size,count:0};
       itemMap[k].count++;
@@ -1182,6 +1264,7 @@ function loadAdminData(){
       :allNames.map(name=>{
         const v=votedMap[name];
         const itemsHtml=(v.items||[]).map(i=>{
+          if(i.isFreeText){return `<span style="white-space:pre-wrap;font-size:11px;">${i.name.slice(0,80)}</span>`;}
           const tTag=i.temp==='hot'?'<span class="tag-hot">HOT</span>':i.temp==='ice'?'<span class="tag-ice">ICE</span>':'';
           const sTag=i.size?`<span class="tag-size">${i.size}</span>`:'';
           return `${i.name.slice(0,16)} ${tTag}${sTag}`;
