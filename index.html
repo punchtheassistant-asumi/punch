@@ -511,7 +511,8 @@ const VENUES={
     orderUrl:null,
     venueType:"app",
     orderNote:"スターバックス ジャパン公式アプリでモバイルオーダーを使用してください。\n\n手順：\n① アプリ → モバイルオーダー\n② ストアで「目黒アトレ店」を選択\n③ チームのオーダーを入力して送信\n\nアプリがない場合はカウンターで直接注文してください。",
-    hint:"☕ Starbucks はモバイルアプリでの注文です。メニューを手動で追加してください。"
+    hint:"☕ Starbucks メニューをロード中...",
+    menuData:[{"name":"☕ Coffee","type":"drink","items":[{"name":"Brewed Coffee","price":394},{"name":"Caffè Misto","price":449},{"name":"Cold Brew Coffee","price":451},{"name":"Sweet Milk Coffee","price":530}]},{"name":"☕ Espresso","type":"drink","items":[{"name":"Bitter Cream Coffee","price":550},{"name":"Caramel Macchiato","price":540},{"name":"Starbucks Latte","price":460},{"name":"Soy Latte","price":460},{"name":"Almond Milk Latte","price":460},{"name":"Oat Milk Latte","price":460},{"name":"Cappuccino","price":460},{"name":"Caffè Mocha","price":515},{"name":"White Mocha","price":515},{"name":"Caffè Americano","price":451},{"name":"Espresso","price":430}]},{"name":"🧋 Frappuccino","type":"drink","items":[{"name":"Peach & Peach Milk Frappuccino","price":720},{"name":"Coffee Frappuccino","price":515},{"name":"Dark Mocha Chip Frappuccino","price":555},{"name":"Caramel Frappuccino","price":570},{"name":"Matcha Cream Frappuccino","price":555},{"name":"Vanilla Cream Frappuccino","price":570},{"name":"Mango Passion Tea Frappuccino","price":550}]},{"name":"🫖 Tea","type":"drink","items":[{"name":"Craft Juicy Peach Tea","price":630},{"name":"Peach Creamy Tea Latte","price":680},{"name":"Earl Grey Bouquet & Tea Latte","price":540},{"name":"Hojicha & Classic Tea Latte","price":530},{"name":"Yuzu Citrus & Tea","price":510},{"name":"Chai Tea Latte","price":510},{"name":"Matcha Tea Latte","price":510},{"name":"Iced Tea (Black)","price":445},{"name":"Iced Tea (Passion)","price":445}]},{"name":"🥤 Other Drinks","type":"drink","items":[{"name":"Chilax Soda Peach","price":590},{"name":"Chilax Soda Yuzu Citrus","price":590},{"name":"White Chocolate Milk","price":460},{"name":"Milk","price":405}]},{"name":"🍰 Dessert","type":"food","items":[{"name":"New York Cheesecake","price":490},{"name":"Earl Grey Basque Cheesecake","price":520},{"name":"Blueberry Rare Cheesecake","price":570},{"name":"White Peach & Earl Grey Tart","price":580},{"name":"Banana & Caramel Cake","price":540},{"name":"Cream Chiffon Cake","price":490},{"name":"Chocolate Terrine","price":540}]},{"name":"🥐 Pastry","type":"food","items":[{"name":"Sugar Doughnut","price":290},{"name":"Banana Choco Doughnut","price":310},{"name":"Strawberry Doughnut","price":310},{"name":"Vanilla Old Fashion Doughnut","price":310},{"name":"Chocolate Chunk Scone","price":280},{"name":"Blueberry Scone","price":290},{"name":"Chocolate Babka","price":390},{"name":"Cinnamon Roll","price":420},{"name":"American Waffle","price":290},{"name":"Lemon Cube Cake","price":300},{"name":"Anko Butter Scone Sandwich","price":390},{"name":"Sugar Doughnut Balls","price":370},{"name":"Bacon & Spinach Quiche","price":490},{"name":"Coarse Sausage Pie","price":380}]},{"name":"🥪 Sandwiches & Food","type":"food","items":[{"name":"Ham & Mariboe Cheese Stone-Oven Filone","price":490},{"name":"Herb Sausage Stone-Oven Filone","price":620},{"name":"Chicken & Cheese Arrabbiata Filone","price":570},{"name":"Chicken & Cheese Hot Tortilla","price":570},{"name":"Basil Pork Hot Tortilla","price":620},{"name":"Croque Monsieur","price":440},{"name":"Blueberry Bagel Sandwich","price":390},{"name":"Club House Campagne Sandwich","price":660},{"name":"Pork Katsu Campagne Sandwich","price":690},{"name":"Ham & Cheese Campagne Sandwich","price":590},{"name":"Root Veg Chicken Salad Wrap","price":460},{"name":"Taco Salad Wrap","price":530},{"name":"Yogurt & Banana Granola","price":360},{"name":"Acai Berry Yogurt & Granola","price":390}]}]
   },
   kyouka:{
     name:"Japanese Bento — 京花",
@@ -590,8 +591,14 @@ function onVenueSelect(){
   hintEl.textContent=venue.hint||"";
   hintEl.className="venue-hint show";
 
-  // Auto-fetch menu for web venues
-  if(venue.menuFetchUrl){
+  // Load pre-built menu data (Starbucks) or auto-fetch for web venues
+  if(venue.menuData){
+    menuCategories=JSON.parse(JSON.stringify(venue.menuData));
+    renderBuilder();
+    presetStatus.style.display="block";
+    presetStatus.className="fetch-status ok";
+    presetStatus.textContent="✅ Starbucks メニュー（70アイテム）をロードしました。確認・編集してください。";
+  } else if(venue.menuFetchUrl){
     presetStatus.style.display="block";
     presetStatus.className="fetch-status";
     presetStatus.textContent="🔄 メニューを取得中...";
