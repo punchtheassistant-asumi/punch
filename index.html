@@ -233,6 +233,32 @@ main{max-width:600px;margin:0 auto;padding:20px 15px 96px;}
 .fetch-divider{text-align:center;font-size:11px;color:var(--mu);margin:14px 0 12px;position:relative;}
 .fetch-divider::before,.fetch-divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:var(--bd);}
 .fetch-divider::before{left:0;}.fetch-divider::after{right:0;}
+
+/* VENUE SELECT */
+.venue-select{width:100%;padding:13px 14px;border:2px solid var(--bd);border-radius:12px;font-size:14px;font-family:var(--font);outline:none;background:var(--w);color:var(--tx);appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2216%27 height=%2216%27 viewBox=%270 0 16 16%27%3E%3Cpath fill=%27%236B3FA0%27 d=%27M8 11L2 5h12z%27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;cursor:pointer;transition:border-color .18s;}
+.venue-select:focus{border-color:var(--p);}
+.venue-hint{font-size:11px;color:var(--mu);margin-top:5px;display:none;}
+.venue-hint.show{display:block;}
+
+/* DISCLAIMER */
+.disclaimer{background:#FFF8E7;border:1.5px solid #E8C84A;border-radius:12px;padding:11px 14px;font-size:11px;color:#7A5F00;line-height:1.55;margin-bottom:14px;}
+.disclaimer strong{color:#5A4200;}
+
+/* ORDER NOW */
+.order-now-btn{width:100%;padding:15px;background:var(--g);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:800;cursor:pointer;margin-bottom:12px;font-family:var(--font);transition:filter .15s;}
+.order-now-btn:hover{filter:brightness(1.1);}
+.order-now-btn.app-only{background:#00704A;}
+.order-now-btn:disabled{opacity:.35;cursor:not-allowed;}
+
+/* APP INSTRUCTIONS MODAL */
+.app-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;align-items:center;justify-content:center;padding:20px;}
+.app-modal-overlay.open{display:flex;}
+.app-modal{background:var(--w);border-radius:20px;padding:28px 24px;max-width:480px;width:100%;text-align:center;}
+.app-modal-icon{font-size:52px;margin-bottom:14px;}
+.app-modal h3{font-size:17px;font-weight:900;color:var(--pd);margin-bottom:8px;}
+.app-modal p{font-size:13px;color:var(--mu);line-height:1.6;margin-bottom:20px;}
+.app-modal-note{background:var(--pl);border-radius:12px;padding:12px 16px;font-size:12px;color:var(--pd);font-weight:600;line-height:1.6;text-align:left;margin-bottom:20px;}
+.app-modal-close{padding:13px 28px;background:var(--p);color:#fff;border:none;border-radius:22px;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--font);}
 </style>
 </head>
 <body>
@@ -295,29 +321,58 @@ main{max-width:600px;margin:0 auto;padding:20px 15px 96px;}
   <div class="screen" id="sSetup">
     <div class="setup-hdr">
       <h2>Create a New Session</h2>
-      <p>Set up your menu — takes about 2 minutes.</p>
+      <p>Set up your venue and menu — takes about 2 minutes.</p>
     </div>
-    <div class="field">
-      <label>Occasion / Restaurant name *</label>
-      <input id="setupName" type="text" placeholder="e.g. Starbucks — Team Lunch Jul 17">
+
+    <div class="disclaimer">
+      ⚠️ <strong>Note:</strong> This tool collects your team's orders only. Actual ordering and payment are placed separately through the restaurant's website or mobile app. No orders are sent automatically.
     </div>
+
     <div class="field">
-      <label>Menu</label>
+      <label>Select Venue *</label>
+      <select class="venue-select" id="venueSelect" onchange="onVenueSelect()">
+        <option value="">— Choose a restaurant / venue —</option>
+        <optgroup label="📍 Meguro Area">
+          <option value="starbucks">☕ Starbucks — Meguro Atre</option>
+          <option value="kyouka">🍱 Japanese Bento — 京花 (min ¥4,000)</option>
+          <option value="mamocafe">🥪 Sandwiches — Mamo Cafe (min ¥4,000)</option>
+          <option value="fujiyama">💪 Protein Bento — Fujiyama (min ¥5,000)</option>
+          <option value="aubergine">🍛 Aubergine Curry (min ¥15,000)</option>
+          <option value="sanpi">🍣 Kappo Bento — 三否両論 (min ¥17,000)</option>
+        </optgroup>
+        <optgroup label="➕ Other">
+          <option value="custom">✏️ Other / Custom URL</option>
+        </optgroup>
+      </select>
+      <div class="venue-hint" id="venueHint"></div>
+    </div>
+
+    <div class="field">
+      <label>Session name</label>
+      <input id="setupName" type="text" placeholder="e.g. Team Lunch — Jul 17">
+    </div>
+
+    <div class="field" id="customUrlField" style="display:none;">
+      <label>Menu URL (custom)</label>
       <div class="fetch-section">
-        <div class="fetch-section-lbl">🔗 Fetch from URL</div>
         <div class="fetch-row">
-          <input id="fetchUrl" type="url" placeholder="Restaurant menu URL (Tabelog, Hotpepper, official site...)">
+          <input id="fetchUrl" type="url" placeholder="Restaurant menu URL...">
           <button class="fetch-btn" id="fetchBtn" onclick="fetchMenuFromUrl()">Fetch</button>
         </div>
         <div class="fetch-status" id="fetchStatus">URLを入れるとメニューを自動取得します</div>
       </div>
-      <div class="fetch-divider">or build manually</div>
+    </div>
+
+    <div class="field">
+      <label>Menu</label>
+      <div id="fetchStatusPreset" class="fetch-status" style="margin-bottom:10px;display:none;"></div>
       <div id="menuBuilder"></div>
       <button class="builder-add-cat" onclick="addCategory()">+ Add Category</button>
     </div>
+
     <div class="field">
-      <label>Minimum order amount (optional)</label>
-      <input id="setupMin" type="number" placeholder="e.g. 2000 (¥)" min="0">
+      <label>Minimum order amount</label>
+      <input id="setupMin" type="number" placeholder="e.g. 4000 (¥)" min="0">
     </div>
     <div class="field">
       <label>Admin PIN (to reset data)</label>
@@ -425,6 +480,8 @@ main{max-width:600px;margin:0 auto;padding:20px 15px 96px;}
       <div class="vtable-hdr" id="vtableHdr">📝 Participant Status</div>
       <div id="voterRows"></div>
     </div>
+    <div class="disclaimer" style="margin-top:16px;">⚠️ <strong>Reminder:</strong> Punch collects orders only — no order is placed automatically. Use the button below to open the restaurant's website and place the order manually.</div>
+    <button class="order-now-btn" id="orderNowBtn" onclick="placeOrder()">📦 Place Order Now →</button>
     <button class="rbtn" onclick="resetSession()">🗑 Reset All Orders</button>
     <button class="btn-s" style="margin-top:10px;" onclick="toggleAdmin()">← Back to Ordering</button>
   </div>
@@ -445,6 +502,126 @@ try{firebase.initializeApp(firebaseConfig);db=firebase.firestore();useFirebase=t
 
 const SESSION_COLL='punch_sessions';
 const SIZES=[{key:'S',label:'Short',inc:0},{key:'T',label:'Tall',inc:55},{key:'G',label:'Grande',inc:110},{key:'V',label:'Venti',inc:165}];
+
+/* ── VENUE PRESETS ── */
+const VENUES={
+  starbucks:{
+    name:"Starbucks — Meguro Atre",
+    minAmount:0,
+    orderUrl:null,
+    venueType:"app",
+    orderNote:"スターバックス ジャパン公式アプリでモバイルオーダーを使用してください。\n\n手順：\n① アプリ → モバイルオーダー\n② ストアで「目黒アトレ店」を選択\n③ チームのオーダーを入力して送信\n\nアプリがない場合はカウンターで直接注文してください。",
+    hint:"☕ Starbucks はモバイルアプリでの注文です。メニューを手動で追加してください。"
+  },
+  kyouka:{
+    name:"Japanese Bento — 京花",
+    minAmount:4000,
+    menuFetchUrl:"https://www.kurumesi-bentou.com/kyouka/",
+    orderUrl:"https://www.kurumesi-bentou.com/kyouka/",
+    venueType:"web",
+    hint:"🍱 最低注文金額 ¥4,000。メニューを自動取得中..."
+  },
+  mamocafe:{
+    name:"Sandwiches — Mamo Cafe",
+    minAmount:4000,
+    menuFetchUrl:"https://www.kurumesi-bentou.com/mamocafe/",
+    orderUrl:"https://www.kurumesi-bentou.com/mamocafe/",
+    venueType:"web",
+    hint:"🥪 最低注文金額 ¥4,000。メニューを自動取得中..."
+  },
+  fujiyama:{
+    name:"Protein Bento — Fujiyama",
+    minAmount:5000,
+    menuFetchUrl:"https://www.kurumesi-bentou.com/fujiyama/",
+    orderUrl:"https://www.kurumesi-bentou.com/fujiyama/",
+    venueType:"web",
+    hint:"💪 最低注文金額 ¥5,000。メニューを自動取得中..."
+  },
+  aubergine:{
+    name:"Aubergine Curry",
+    minAmount:15000,
+    menuFetchUrl:"https://www.kurumesi-bentou.com/aubergine/",
+    orderUrl:"https://www.kurumesi-bentou.com/aubergine/",
+    venueType:"web",
+    hint:"🍛 最低注文金額 ¥15,000。メニューを自動取得中..."
+  },
+  sanpi:{
+    name:"Kappo Bento — 三否両論",
+    minAmount:17000,
+    menuFetchUrl:"https://www.kurumesi-bentou.com/sanpi_ryoron/",
+    orderUrl:"https://www.kurumesi-bentou.com/sanpi_ryoron/",
+    venueType:"web",
+    hint:"🍣 最低注文金額 ¥17,000。メニューを自動取得中..."
+  }
+};
+
+/* ── VENUE SELECT ── */
+let _selectedVenueId="";
+function onVenueSelect(){
+  const id=document.getElementById("venueSelect").value;
+  _selectedVenueId=id;
+  const venue=VENUES[id];
+  const hintEl=document.getElementById("venueHint");
+  const customField=document.getElementById("customUrlField");
+  const presetStatus=document.getElementById("fetchStatusPreset");
+
+  // Reset hint
+  hintEl.className="venue-hint";hintEl.textContent="";
+  customField.style.display="none";
+  presetStatus.style.display="none";
+
+  if(!id)return;
+
+  if(id==="custom"){
+    customField.style.display="block";
+    return;
+  }
+
+  if(!venue)return;
+
+  // Pre-fill session name
+  const today=new Date().toLocaleDateString("ja-JP",{month:"numeric",day:"numeric"});
+  document.getElementById("setupName").value=venue.name+" — "+today;
+
+  // Pre-fill min amount
+  document.getElementById("setupMin").value=venue.minAmount||"";
+
+  // Show hint
+  hintEl.textContent=venue.hint||"";
+  hintEl.className="venue-hint show";
+
+  // Auto-fetch menu for web venues
+  if(venue.menuFetchUrl){
+    presetStatus.style.display="block";
+    presetStatus.className="fetch-status";
+    presetStatus.textContent="🔄 メニューを取得中...";
+    document.getElementById("fetchUrl").value=venue.menuFetchUrl;
+    fetchMenuFromUrl(true);
+  }
+}
+
+/* ── PLACE ORDER ── */
+function placeOrder(){
+  if(!sessionConfig){showToast("No active session");return;}
+  const vt=sessionConfig.venueType||"web";
+  const url=sessionConfig.orderUrl;
+  const note=sessionConfig.orderNote;
+
+  if(vt==="app"||!url){
+    // Show app instructions modal
+    document.getElementById("appModalIcon").textContent="📱";
+    document.getElementById("appModalTitle").textContent="Place Order via App";
+    document.getElementById("appModalDesc").textContent="This venue requires ordering through their mobile app or directly at the counter.";
+    document.getElementById("appModalNote").innerHTML=(note||"Please place the order manually through the venue's app or website.").replace(/\n/g,"<br>");
+    document.getElementById("appModalOverlay").classList.add("open");
+  } else {
+    window.open(url,"_blank");
+  }
+}
+
+function closeAppModal(e){
+  if(e.target.id==="appModalOverlay")document.getElementById("appModalOverlay").classList.remove("open");
+}
 
 /* STATE */
 let currentCode=null, sessionConfig=null;
@@ -481,16 +658,18 @@ async function genUniqueCode(){
 }
 
 /* ── URL FETCH ── */
-async function fetchMenuFromUrl(){
+async function fetchMenuFromUrl(fromPreset=false){
   const urlInput=document.getElementById("fetchUrl");
   const btn=document.getElementById("fetchBtn");
-  const status=document.getElementById("fetchStatus");
+  // Use preset status element when called from venue select
+  const statusEl=fromPreset?document.getElementById("fetchStatusPreset"):document.getElementById("fetchStatus");
   const url=urlInput.value.trim();
-  if(!url){showToast("URLを入力してください");return;}
+  if(!url){if(!fromPreset)showToast("URLを入力してください");return;}
 
-  btn.disabled=true;btn.textContent="…";
-  status.className="fetch-status";
-  status.textContent="取得中...";
+  if(!fromPreset){btn.disabled=true;btn.textContent="…";}
+  statusEl.className="fetch-status";
+  statusEl.style.display="block";
+  statusEl.textContent="取得中...";
 
   try{
     // CORS proxy
@@ -512,8 +691,8 @@ async function fetchMenuFromUrl(){
     const items=extractMenuItems(doc);
 
     if(items.length===0){
-      status.className="fetch-status err";
-      status.innerHTML="⚠️ メニューを自動検出できませんでした。<br>「or build manually」から手動で追加してください。";
+      statusEl.className="fetch-status err";
+      statusEl.innerHTML="⚠️ メニューを自動検出できませんでした。手動で追加してください。";
       return;
     }
 
@@ -534,19 +713,19 @@ async function fetchMenuFromUrl(){
     });
     renderBuilder();
 
-    status.className="fetch-status ok";
-    status.textContent="✅ "+items.length+"件を検出！内容を確認・編集してから「Create Session」を押してください。";
+    statusEl.className="fetch-status ok";
+    statusEl.textContent="✅ "+items.length+"件を検出！確認・編集してから「Create Session」を押してください。";
 
   }catch(e){
-    status.className="fetch-status err";
+    statusEl.className="fetch-status err";
     if(e.name==="TimeoutError"){
-      status.textContent="⚠️ タイムアウト。URLが正しいか確認してください。";
+      statusEl.textContent="⚠️ タイムアウト。URLが正しいか確認してください。";
     } else {
-      status.textContent="⚠️ 取得に失敗 ("+e.message+")。手動でメニューを追加してください。";
+      statusEl.textContent="⚠️ 取得に失敗 ("+e.message+")。手動でメニューを追加してください。";
     }
     console.error("fetchMenu:",e);
   }finally{
-    btn.disabled=false;btn.textContent="Fetch";
+    if(!fromPreset){btn.disabled=false;btn.textContent="Fetch";}
   }
 }
 
@@ -661,7 +840,14 @@ async function createSession(){
   const minAmt=parseInt(document.getElementById('setupMin').value)||0;
   const pin=document.getElementById('setupPin').value.trim()||'0000';
   const code=await genUniqueCode();
-  const config={name,menu:validCats,minAmount:minAmt,adminPin:pin,createdAt:new Date().toISOString()};
+  const venue=VENUES[_selectedVenueId]||{};
+  const config={
+    name,menu:validCats,minAmount:minAmt,adminPin:pin,
+    orderUrl:venue.orderUrl||null,
+    orderNote:venue.orderNote||null,
+    venueType:venue.venueType||"web",
+    createdAt:new Date().toISOString()
+  };
   if(useFirebase){
     try{await db.collection(SESSION_COLL).doc(code).set({config});}
     catch(e){showToast('Error creating session: '+e.message);return;}
@@ -993,5 +1179,17 @@ function showToast(msg){
   toastTimer=setTimeout(()=>t.classList.remove('show'),2500);
 }
 </script>
+
+<!-- APP INSTRUCTIONS MODAL -->
+<div class="app-modal-overlay" id="appModalOverlay" onclick="closeAppModal(event)">
+  <div class="app-modal">
+    <div class="app-modal-icon" id="appModalIcon">📱</div>
+    <h3 id="appModalTitle">Place Order via App</h3>
+    <p id="appModalDesc"></p>
+    <div class="app-modal-note" id="appModalNote"></div>
+    <button class="app-modal-close" onclick="document.getElementById('appModalOverlay').classList.remove('open')">Got it ✓</button>
+  </div>
+</div>
+
 </body>
 </html>
