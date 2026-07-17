@@ -217,6 +217,22 @@ main{max-width:600px;margin:0 auto;padding:20px 15px 96px;}
 @keyframes spin{to{transform:rotate(360deg)}}
 .min-warn{background:#FFF3CD;border:1px solid #F0D060;border-radius:12px;padding:10px 14px;font-size:12px;color:#7A5F00;margin-top:12px;display:none;}
 .min-warn.show{display:block;}
+
+/* FETCH URL */
+.fetch-section{background:linear-gradient(135deg,#F3EEFF,#EDE5FF);border:2px solid var(--pm);border-radius:14px;padding:14px;margin-bottom:14px;}
+.fetch-section-lbl{font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--p);margin-bottom:8px;}
+.fetch-row{display:flex;gap:8px;}
+.fetch-row input{flex:1;padding:11px 13px;border:2px solid var(--bd);border-radius:10px;font-size:13px;font-family:var(--font);outline:none;background:var(--w);}
+.fetch-row input:focus{border-color:var(--p);}
+.fetch-btn{flex-shrink:0;padding:11px 18px;background:var(--p);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font);transition:background .15s;}
+.fetch-btn:hover{background:var(--pd);}
+.fetch-btn:disabled{opacity:.4;cursor:not-allowed;}
+.fetch-status{font-size:11px;color:var(--mu);margin-top:8px;min-height:16px;line-height:1.4;}
+.fetch-status.ok{color:var(--g);font-weight:700;}
+.fetch-status.err{color:var(--red);}
+.fetch-divider{text-align:center;font-size:11px;color:var(--mu);margin:14px 0 12px;position:relative;}
+.fetch-divider::before,.fetch-divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:var(--bd);}
+.fetch-divider::before{left:0;}.fetch-divider::after{right:0;}
 </style>
 </head>
 <body>
@@ -287,6 +303,15 @@ main{max-width:600px;margin:0 auto;padding:20px 15px 96px;}
     </div>
     <div class="field">
       <label>Menu</label>
+      <div class="fetch-section">
+        <div class="fetch-section-lbl">🔗 Fetch from URL</div>
+        <div class="fetch-row">
+          <input id="fetchUrl" type="url" placeholder="Restaurant menu URL (Tabelog, Hotpepper, official site...)">
+          <button class="fetch-btn" id="fetchBtn" onclick="fetchMenuFromUrl()">Fetch</button>
+        </div>
+        <div class="fetch-status" id="fetchStatus">URLを入れるとメニューを自動取得します</div>
+      </div>
+      <div class="fetch-divider">or build manually</div>
       <div id="menuBuilder"></div>
       <button class="builder-add-cat" onclick="addCategory()">+ Add Category</button>
     </div>
@@ -453,6 +478,136 @@ async function genUniqueCode(){
     if(!doc.exists)return code;
   }
   return genCode();
+}
+
+/* ── URL FETCH ── */
+async function fetchMenuFromUrl(){
+  const urlInput=document.getElementById("fetchUrl");
+  const btn=document.getElementById("fetchBtn");
+  const status=document.getElementById("fetchStatus");
+  const url=urlInput.value.trim();
+  if(!url){showToast("URLを入力してください");return;}
+
+  btn.disabled=true;btn.textContent="…";
+  status.className="fetch-status";
+  status.textContent="取得中...";
+
+  try{
+    // CORS proxy
+    const proxy="https://api.allorigins.win/get?url="+encodeURIComponent(url);
+    const res=await fetch(proxy,{signal:AbortSignal.timeout(15000)});
+    if(!res.ok)throw new Error("proxy error "+res.status);
+    const data=await res.json();
+    const html=data.contents||"";
+    if(!html)throw new Error("empty response");
+
+    const parser=new DOMParser();
+    const doc=parser.parseFromString(html,"text/html");
+
+    // Remove nav/footer/script noise
+    ["script","style","nav","footer","header","noscript","aside"].forEach(tag=>{
+      doc.querySelectorAll(tag).forEach(el=>el.remove());
+    });
+
+    const items=extractMenuItems(doc);
+
+    if(items.length===0){
+      status.className="fetch-status err";
+      status.innerHTML="⚠️ メニューを自動検出できませんでした。<br>「or build manually」から手動で追加してください。";
+      return;
+    }
+
+    // Group by detected category
+    menuCategories=[];
+    const catMap={};
+    items.forEach(item=>{
+      const key=item.category||"Menu";
+      if(!catMap[key])catMap[key]=[];
+      catMap[key].push(item);
+    });
+    Object.entries(catMap).forEach(([catName,catItems])=>{
+      menuCategories.push({
+        name:catName,
+        type:catName.match(/drink|coffee|tea|juice|beer|wine|sake|juice|beverage|飲み物|ドリンク|コーヒー|ビール|お酒/i)?"drink":"food",
+        items:catItems.map(i=>({name:i.name,price:i.price}))
+      });
+    });
+    renderBuilder();
+
+    status.className="fetch-status ok";
+    status.textContent="✅ "+items.length+"件を検出！内容を確認・編集してから「Create Session」を押してください。";
+
+  }catch(e){
+    status.className="fetch-status err";
+    if(e.name==="TimeoutError"){
+      status.textContent="⚠️ タイムアウト。URLが正しいか確認してください。";
+    } else {
+      status.textContent="⚠️ 取得に失敗 ("+e.message+")。手動でメニューを追加してください。";
+    }
+    console.error("fetchMenu:",e);
+  }finally{
+    btn.disabled=false;btn.textContent="Fetch";
+  }
+}
+
+function extractMenuItems(doc){
+  const items=[];
+  const text=doc.body?doc.body.textContent:"";
+  const lines=text.split(/\n/).map(l=>l.trim()).filter(l=>l.length>1);
+
+  // Price regex: ¥500 / 500円 / ¥ 500 / 税込500円
+  const priceRE=/[¥￥]\s*(\d{2,5})|(\d{2,5})\s*(?:円|yen)/gi;
+
+  let currentCat="Menu";
+  const catKeywords=/^\s*(?:前菜|サラダ|スープ|パスタ|ピザ|肉|魚|デザート|ドリンク|コーヒー|アルコール|ソフトドリンク|サンドイッチ|バーガー|ライス|麺|セット|appetizer|salad|soup|pasta|pizza|meat|fish|dessert|drink|coffee|beer|wine|burger|sandwich|rice|noodle|set|steak|curry|ramen|sushi)\s*$/i;
+
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i];
+
+    // Detect category headers: short line with no price, looks like a heading
+    if(line.length>=2 && line.length<=20 && !line.match(/[¥￥]|\d{3,}円/) && catKeywords.test(line)){
+      currentCat=line.trim();
+      continue;
+    }
+
+    // Match price on this line
+    const m=line.match(/[¥￥]\s*(\d{2,5})|(\d{2,5})\s*円/);
+    if(!m)continue;
+    const price=parseInt(m[1]||m[2]);
+    if(price<150||price>20000)continue;
+
+    // Extract name: strip price, tax notes, extra punctuation
+    let name=line
+      .replace(/[¥￥]\s*\d{2,5}/g,"")
+      .replace(/\d{2,5}\s*円/g,"")
+      .replace(/[（(][^)）]*[)）]/g,"")
+      .replace(/税[込抜]?\d*/g,"")
+      .replace(/[+＋]\s*tax/gi,"")
+      .replace(/[\t\r]+/g," ")
+      .replace(/\s{2,}/g," ")
+      .trim();
+
+    // If name is too short, look at prev line
+    if(name.length<2 && i>0){
+      const prev=lines[i-1].replace(/[¥￥]\s*\d+/g,"").replace(/\d+\s*円/g,"").trim();
+      if(prev.length>=2 && prev.length<=60 && !/^\d+$/.test(prev)) name=prev;
+    }
+
+    if(!name||name.length<2||name.length>60)continue;
+    if(/^\d+$/.test(name))continue;
+    // Noise filters
+    if(/^(合計|小計|送料|手数料|消費税|税込|税抜|合計金額|subtotal|total|tax|delivery)/i.test(name))continue;
+
+    items.push({name,price,category:currentCat});
+  }
+
+  // Deduplicate
+  const seen=new Set();
+  return items.filter(item=>{
+    const k=item.name.toLowerCase()+":"+item.price;
+    if(seen.has(k))return false;
+    seen.add(k);return true;
+  });
 }
 
 /* ── MENU BUILDER ── */
