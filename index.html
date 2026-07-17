@@ -1220,6 +1220,8 @@ function toggleAdmin(){
     scr.classList.remove('open');
     document.getElementById('hAdmBtn').textContent='📊 Summary';
     if(adminUnsub){adminUnsub();adminUnsub=null;}
+    // Return to menu if in an active session
+    if(currentPerson && currentCode) showScreen('sMenu');
     return;
   }
   if(!currentCode){showToast('No active session');return;}
