@@ -1092,11 +1092,18 @@ function updateFreeTextCart(){
 
 /* ── CART ── */
 function addFood(item,el){
+  const idx=cart.findIndex(c=>c.name===item.name&&c.isDrink===false);
+  if(idx>=0){
+    cart.splice(idx,1);
+    el.classList.remove('sel');
+    const b=el.querySelector('.sel-badge');if(b)b.textContent='';
+    updateCartBar();
+    showToast(item.name+' removed');
+    return;
+  }
   cart.push({name:item.name,temp:null,size:null,price:item.price,isDrink:false});
   el.classList.add('sel');
-  const b=el.querySelector('.sel-badge');
-  const cnt=cart.filter(c=>c.name===item.name).length;
-  b.textContent=cnt;
+  const b=el.querySelector('.sel-badge');if(b)b.textContent='1';
   updateCartBar();
   showToast(item.name+' added ✓');
 }
@@ -1175,19 +1182,27 @@ function addToCart(){
 }
 
 /* ── CONFIRM ── */
+function removeFromCart(idx){
+  cart.splice(idx,1);
+  goToConfirm();
+  updateCartBar();
+  if(!cart.length){goBackToMenu();}
+}
 function goToConfirm(){
   if(!cart.length)return;
   const list=document.getElementById('confirmList');list.innerHTML='';
   let total=0;
-  cart.forEach(item=>{
+  cart.forEach((item,idx)=>{
     total+=item.price;
     const li=document.createElement('li');
+    li.style.position='relative';
     const tempTag=item.temp==='hot'?'<span class="tag-hot">HOT</span>':item.temp==='ice'?'<span class="tag-ice">ICE</span>':'';
     const szTag=item.size?`<span class="tag-size">${item.size}</span>`:'';
+    const delBtn=`<button onclick="removeFromCart(${idx})" style="background:none;border:none;cursor:pointer;color:#aaa;font-size:18px;padding:0 4px;margin-left:8px;flex-shrink:0;" title="Remove">✕</button>`;
     if(item.isFreeText){
-      li.innerHTML=`<div class="o-emoji">✏️</div><div class="o-info"><div class="o-name" style="white-space:pre-wrap;font-size:12px;">${item.name}</div></div><div class="o-price">${item.price>0?'¥'+item.price.toLocaleString():''}</div>`;
+      li.innerHTML=`<div class="o-emoji">✏️</div><div class="o-info"><div class="o-name" style="white-space:pre-wrap;font-size:12px;">${item.name}</div></div><div class="o-price">${item.price>0?'¥'+item.price.toLocaleString():''}</div>${delBtn}`;
     } else {
-      li.innerHTML=`<div class="o-emoji">${item.isDrink?'☕':'🍱'}</div><div class="o-info"><div class="o-name">${item.name}</div><div class="o-opts">${tempTag} ${szTag}</div></div><div class="o-price">¥${item.price.toLocaleString()}</div>`;
+      li.innerHTML=`<div class="o-emoji">${item.isDrink?'☕':'🍱'}</div><div class="o-info"><div class="o-name">${item.name}</div><div class="o-opts">${tempTag} ${szTag}</div></div><div class="o-price">¥${item.price.toLocaleString()}</div>${delBtn}`;
     }
     list.appendChild(li);
   });
@@ -1198,7 +1213,7 @@ function goToConfirm(){
 }
 function goBackToMenu(){showScreen('sMenu');}
 
-async function submitOrder(){
+async async function submitOrder(){
   const btn=document.querySelector('#sConfirm .btn-gold');
   btn.disabled=true;btn.textContent='Submitting...';
   const total=cart.reduce((s,i)=>s+i.price,0);
@@ -1283,11 +1298,25 @@ function loadAdminData(){
           const sTag=i.size?`<span class="tag-size">${i.size}</span>`:'';
           return `${i.name.slice(0,16)} ${tTag}${sTag}`;
         }).join('<br>');
-        return `<div class="vrow"><div class="vrow-name">✅ ${name}</div><div class="vrow-items">${itemsHtml}<br><span style="font-weight:700;color:var(--pd)">¥${(v.total||0).toLocaleString()}</span></div></div>`;
+        return `<div class="vrow"><div class="vrow-name">✅ ${name}</div><div class="vrow-items">${itemsHtml}<br><span style="font-weight:700;color:var(--pd)">¥${(v.total||0).toLocaleString()}</span></div><button onclick="deletePersonOrder('${name.replace(/'/g,"\\\'")}',event)" style="background:none;border:1px solid #ddd;border-radius:8px;color:#999;font-size:11px;padding:4px 8px;cursor:pointer;flex-shrink:0;margin-left:8px;" title="Delete order">✕ Remove</button></div>`;
       }).join('');
   },err=>{
     document.getElementById('admList').innerHTML=`<div style="color:var(--red);padding:14px;font-size:12px;background:var(--w);border-radius:12px;">⚠️ Firebase not connected. Check config.<br><small>${err.message}</small></div>`;
   });
+}
+
+async function deletePersonOrder(name,evt){
+  if(evt)evt.stopPropagation();
+  if(!confirm(`Remove ${name}'s order? This cannot be undone.`))return;
+  const pin=prompt('Enter admin PIN:');
+  if(pin===null)return;
+  if(pin!==sessionConfig?.adminPin){showToast('Incorrect PIN ❌');return;}
+  try{
+    if(useFirebase&&currentCode){
+      await db.collection(SESSION_COLL).doc(currentCode).collection('orders').doc(name).delete();
+      showToast(name+'\'s order removed');
+    }
+  }catch(e){showToast('Error: '+e.message);}
 }
 
 async function resetSession(){
