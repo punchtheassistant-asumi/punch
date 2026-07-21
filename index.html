@@ -692,7 +692,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 /* ── SESSION CODE GENERATION ── */
-function genCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
+async function genCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
 async function genUniqueCode(){
   for(let i=0;i<10;i++){
     const code=genCode();
@@ -970,7 +970,7 @@ async function loadSession(code){
   }catch(e){showToast('Error loading session: '+e.message);}
 }
 
-async function joinSession(){
+async async function joinSession(){
   const code=document.getElementById('joinCode').value.trim().toUpperCase();
   if(code.length!==6){showToast('Please enter a 6-character code');return;}
   await loadSession(code);
@@ -995,7 +995,7 @@ function updateHeader(){
   }
 }
 
-function copyLink(){
+async function copyLink(){
   const url=window.location.origin+window.location.pathname+'#'+currentCode;
   navigator.clipboard.writeText(url).then(()=>showToast('Link copied! ✅')).catch(()=>{
     prompt('Copy this link:',url);
@@ -1003,7 +1003,7 @@ function copyLink(){
 }
 
 /* ── NAME INPUT ── */
-function setupNameInput(){
+async function setupNameInput(){
   const input=document.getElementById('nameInput');
   const btn=document.getElementById('nameGoBtn');
   input.addEventListener('keydown',e=>{if(e.key==='Enter')submitName();});
@@ -1211,7 +1211,7 @@ function goToConfirm(){
   list.appendChild(li);
   showScreen('sConfirm');
 }
-function goBackToMenu(){showScreen('sMenu');}
+async function goBackToMenu(){showScreen('sMenu');}
 
 async async function submitOrder(){
   const btn=document.querySelector('#sConfirm .btn-gold');
