@@ -720,7 +720,7 @@ async function fetchMenuFromUrl(fromPreset=false){
   try{
     // CORS proxy
     const proxy="https://api.allorigins.win/get?url="+encodeURIComponent(url);
-    const res=await fetch(proxy,{signal:AbortSignal.timeout(15000)});
+    const _ac=new AbortController();const _acTimer=setTimeout(()=>_ac.abort(),15000);let res;try{res=await fetch(proxy,{signal:_ac.signal});}finally{clearTimeout(_acTimer);}
     if(!res.ok)throw new Error("proxy error "+res.status);
     const data=await res.json();
     const html=data.contents||"";
